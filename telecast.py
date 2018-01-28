@@ -9,31 +9,38 @@ import time
 #Chromedriver
 browser = webdriver.Chrome()
 browser.get('https://web.telegram.org/#/im')
-
 #________________________________________________________________________#
+#Global variables. get rid of these fucking things ASAP
+
 # Home Group
 global HOME_GROUP
+HOME_GROUP = 'PAID GROUP'
 
 # GroupQueue
 global groupQueue
+groupQueue = deque([])
 
-#grabs all groupchats
+#groupChats
 global groupChats
 
-#Selected Top Group
+#Selected Group
 global selectedGroup
 
 #Last Messagege Dictionary
 global lastMessageDict
+lastMessageDict = {}
 
 #Message Stack
 global MESSAGE_STACK
+MESSAGE_STACK = []
 
 #Selected group title
 global SELECTED_GROUP_TITLE
+SELECTED_GROUP_TITLE = 'Whale Group'
 
 #trigger for bot loop. set after selectGroups runs successfully
 global READY
+READY = False
 #________________________________________________________________________#
 #Lets the user select groups to track
 def selectGroups():
@@ -171,60 +178,31 @@ def broadCast():
     print('broadcast ran successfully')
 print(SELECTED_GROUP_TITLE)
 #________________________________________________________________________#
-#User Prompt to start
+#User prompt to run BotLoop
 while True:
-        try:
-            userPrompt = input("Please type 'ready' after signing in. Telecast will then run.")            
-            
-        except ValueError:
-            print("You gotta type in 'ready' exactly like that, bud...")
+    print('inside user prompt')
+    try:
+        userPrompt = input("Please type 'ready' after signing in. Telecast will then run.")            
+        
+    except ValueError:
+        print("You gotta type in 'ready' exactly like that, bud...")
+        continue
+
+    else:
+        if(userPrompt == 'ready'):
+            global READY
+            READY = True
+            break
+        else:
             continue
 
-        else:
-            if(userPrompt == 'ready'):
-                break
-            else:
-                continue
-
-#________________________________________________________________________#
-#Global variables. get rid of these fucking things ASAP
-#initialized here because globals must be instantiated AFTER logged in, once telegram is actually opened.
-
-# Home Group
-global HOME_GROUP
-HOME_GROUP = 'PAID GROUP'
-
-# GroupQueue
-global groupQueue
-groupQueue = deque([])
-
-
-#grabs all groupchats
-global groupChats
-groupChats = browser.find_elements_by_class_name("im_dialog_wrap")
-
-#Selected Top Group
-global selectedGroup
-selectedGroup = groupChats[0]
-
-#Last Messagege Dictionary
-global lastMessageDict
-lastMessageDict = {}
-
-#Message Stack
-global MESSAGE_STACK
-MESSAGE_STACK = []
-
-#Selected group title
-global SELECTED_GROUP_TITLE
-SELECTED_GROUP_TITLE = 'Whale Group'
-
-#trigger for bot loop. set after selectGroups runs successfully
-global READY
-READY = False
 #________________________________________________________________________#
 #BotLoop
+#grabs all groupchats
+groupChats = browser.find_elements_by_class_name("im_dialog_wrap")
+
 while True:
+    print('inside botLoop')
     try:
         if (READY):
             selectGroups()
