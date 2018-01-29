@@ -26,7 +26,7 @@ def selectGroups(groupChats):
             listOfIndexOfChats.append(groupNumber)
         except ValueError:
             break
-            
+    
     #now that we have the group indeces, use global variable to change indeces to chatNames
     userChats = []
     for index in listOfIndexOfChats:
@@ -120,7 +120,7 @@ def broadCast(messageStack, selectedGroupTitle, groupChats):
     messageStack.reverse()
     for chat in groupChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
-        if(titleArray[0].text == HOME_GROUP):
+        if(titleArray[0].text == 'PAID GROUP'):
             chat.click()
             break
     
