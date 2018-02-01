@@ -33,7 +33,7 @@ def selectGroups(groupChats):
     userChats = []
     for index in listOfIndexOfChats:
         userChats.append(groupChats[index-1])
-
+    print('You have selected the following groups: ')
     #return userChats
     return userChats
     
@@ -41,7 +41,7 @@ def selectGroups(groupChats):
 def selectHomeGroup(groupChats):
     index = int(input("Please input the number of the Home Group: "))
     homeGroup = groupChats[index-1].find_elements_by_css_selector("div.im_dialog_peer")[0].text
-    print(homeGroup)
+    print('Selected '+ homeGroup+' as homegroup.')
     return homeGroup
 
 #________________________________________________________________________#
@@ -62,12 +62,12 @@ def initializeDict(groupChats):
                 textMessages = list(filter(None, textMessages))
                 key_gc = selectedGroupTitle
                 lastMessageDict[key_gc] = textMessages[-1]
-                print('Loaded ' + selectedGroupTitle)
+                print('Loaded ' + selectedGroupTitle + ': '+ lastMessageDict[key_gc])
                 break
             except:
-                print(selectedGroupTitle + 'did not load yet, trying again.')
+                print(selectedGroupTitle + 'did not load yet, retrying.')
     print(lastMessageDict)
-    print('Bot is ready')
+    print('Recorded most recent messages in every group. New messages will be pushed to homegroup.')
     return lastMessageDict
 #________________________________________________________________________#
 #groupQueueBuilder
@@ -80,15 +80,17 @@ def groupQueueBuilder(trackedChats):
             oneTitleArray = groupChat.find_elements_by_css_selector("div.im_dialog_peer")
             if(oneTitleArray[0].text not in groupQueue):
                 groupQueue.append(oneTitleArray[0].text)
+    print(groupQueue)
     return groupQueue
 #________________________________________________________________________#
 #groupFinder - Takes in name of group finds it selects it, returns title of slected chat
 def groupFinder(name, trackedChats):
+    print('Finding groupchat')
     for chat in trackedChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
         if(titleArray[0].text == name):
             chat.click()
-            print('groupFinder ran successfully')
+            print('Clicked on groupchat.')
             return(titleArray[0].text)
     print('groupFinder Could not find group: '+ name)
     return 'noGroupError'
@@ -100,6 +102,7 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
     messageStack = []
     messages = browser.find_elements_by_class_name("im_message_text")
     textMessages = []
+    print('Loading Messages')
     #change array of WebElements to array of strings. easier to work with, avoid errors
     for webElement in messages:
         textMessages.append(webElement.text)
@@ -113,14 +116,16 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
         else:
 #             SHOULD RUN WHEN MESSAGES ARE PUSHED
             break
+    print('Messages Loaded')
+    print(messageStack)
     return messageStack
  #________________________________________________________________________#
 # Broadcast Method
 def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
     #select home chat
-    print('Will now be sending:')
-    print(messageStack)
+    print('            Will now be sending: ')
     messageStack.reverse()
+    print(messageStack)
     for chat in groupChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
         if(titleArray[0].text == homeGroup):
@@ -136,13 +141,17 @@ def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
         lastMessageDict[selectedGroupTitle] = messageStack[-1]
     #clean up after sending messages.
     messageStack.clear()
-    print('broadcast ran successfully')
+    print('Messages sent successfully!')
+    print(messageStack)
+    return 0
 #________________________________________________________________________#
 def fillGroupQueue(trackedChats):
     groupQueue = deque([])
     for webElement in trackedChats:
         titleArray = webElement.find_elements_by_css_selector("div.im_dialog_peer")
         groupQueue.append(titleArray[0].text)
+    print('Time to check every group for missed messages')
+    print(groupQueue)
     return groupQueue
         
 #________________________________________________________________________#
@@ -151,9 +160,10 @@ global READY
 READY = False
 
 while True:
-    print('inside user prompt')
+    print('______________________________________________________________')
+    print('READ DIRECTIONS CAREFULLY.')
     try:
-        userPrompt = input("Please type 'ready' after signing in. Telecast will then run.")            
+        userPrompt = input("Please type 'ready' after signing in to continue. ")            
         
     except ValueError:
         print("You gotta type in 'ready' exactly like that, bud...")
@@ -177,7 +187,6 @@ if (READY):
     #Create Runtime Variables inside here.
     groupChats = browser.find_elements_by_class_name("im_dialog_wrap") 
     groupQueue = deque([])
-    #_____________________________________
     trackedChats = selectGroups(groupChats)
     homeGroup = selectHomeGroup(groupChats)
     lastMessageDict = initializeDict(trackedChats)
@@ -185,14 +194,17 @@ if (READY):
     timeout_start = time.time()
     cleanupTimeout = time.time()
     # month timeout:
-    while time.time() < 1517278786 + 259200:
-    # while time.time() < timeout_start + timeout:
+    # while time.time() < 1517278786 + 259200:
+    while time.time() < timeout_start + timeout:
         if(len(list(groupQueue)) == 0):
             time.sleep(1)
             if(time.time() > cleanupTimeout + 10):
                 groupQueue = fillGroupQueue(trackedChats)
+                cleanupTimeout = time.time()
             else:
                 groupQueue = groupQueueBuilder(trackedChats)
+                if(len(list(groupQueue)) != 0)
+                    cleanupTimeout = time.time()
                 
         else:
             selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
