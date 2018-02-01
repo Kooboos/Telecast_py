@@ -5,10 +5,11 @@ from selenium.webdriver.support import expected_conditions as ec
 from collections import deque
 from selenium.webdriver.common.keys import Keys
 import time
-#________________________________________________________________________#
+
 #Chromedriver
 browser = webdriver.Chrome()
 browser.get('https://web.telegram.org/#/im')
+
 #________________________________________________________________________#
 #Lets the user select groups to track
 def selectGroups(groupChats):
@@ -22,11 +23,12 @@ def selectGroups(groupChats):
     listOfIndexOfChats = []
     while True:
         try:
-            groupNumber = int(input("Please input the number of the groupchat you want to track (any non-number to proceed): "))
+            groupNumber = int(input("Please input the number of"+
+                                    " the groupchat you want to track (any non-number to proceed): "))
             listOfIndexOfChats.append(groupNumber)
         except ValueError:
             break
-    
+            
     #now that we have the group indeces, use global variable to change indeces to chatNames
     userChats = []
     for index in listOfIndexOfChats:
@@ -35,7 +37,12 @@ def selectGroups(groupChats):
     #return userChats
     return userChats
     
-    print('selectGroups ran successfully')
+#________________________________________________________________________#
+def selectHomeGroup(groupChats):
+    index = int(input("Please input the number of the Home Group: "))
+    homeGroup = groupChats[index-1].find_elements_by_css_selector("div.im_dialog_peer")[0].text
+    print(homeGroup)
+    return homeGroup
 
 #________________________________________________________________________#
 #Creates dictionairy of last messages in each group
@@ -43,7 +50,6 @@ def initializeDict(groupChats):
     lastMessageDict = {}
     for chat in groupChats:
         chat.click()
-#         time.sleep(2)
         selectedGroupTitle = chat.find_elements_by_css_selector("div.im_dialog_peer")[0].text
         while True:
             try:
@@ -56,16 +62,17 @@ def initializeDict(groupChats):
                 textMessages = list(filter(None, textMessages))
                 key_gc = selectedGroupTitle
                 lastMessageDict[key_gc] = textMessages[-1]
-                print('finished initializing: ' + selectedGroupTitle)
+                print('Loaded ' + selectedGroupTitle)
                 break
             except:
                 print(selectedGroupTitle + 'did not load yet, trying again.')
     print(lastMessageDict)
-    print('initializeDict ran successfully')
+    print('Bot is ready')
+    return lastMessageDict
 #________________________________________________________________________#
 #groupQueueBuilder
-def groupQueueBuilder(groupChats):
-    for groupChat in groupChats:
+def groupQueueBuilder(trackedChats):
+    for groupChat in trackedChats:
         oneBadgeArray = groupChat.find_elements_by_css_selector("span.im_dialog_badge.badge")
 #         TO DO : make it not take messages from HOME GROUP
         if(oneBadgeArray[0].text!=""):
@@ -74,11 +81,10 @@ def groupQueueBuilder(groupChats):
             if(oneTitleArray[0].text not in groupQueue):
                 groupQueue.append(oneTitleArray[0].text)
     return groupQueue
-    print('groupQueueBuilder ran successfully')
 #________________________________________________________________________#
 #groupFinder - Takes in name of group finds it selects it, returns title of slected chat
-def groupFinder(name):
-    for chat in groupChats:
+def groupFinder(name, trackedChats):
+    for chat in trackedChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
         if(titleArray[0].text == name):
             chat.click()
@@ -101,26 +107,23 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
     textMessages = list(filter(None, textMessages))
     #reversing list to make FIFO
     textMessages.reverse()
-    print(lastMessageDict[selectedGroupTitle])
     for message in textMessages:
-        
         if(message != lastMessageDict[selectedGroupTitle]):
             messageStack.append(message)
         else:
 #             SHOULD RUN WHEN MESSAGES ARE PUSHED
             break
     return messageStack
-    print('createMessageStack ran successfully')
-#________________________________________________________________________#
+ #________________________________________________________________________#
 # Broadcast Method
-def broadCast(messageStack, selectedGroupTitle, groupChats):
+def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
     #select home chat
     print('Will now be sending:')
     print(messageStack)
     messageStack.reverse()
     for chat in groupChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
-        if(titleArray[0].text == 'PAID GROUP'):
+        if(titleArray[0].text == homeGroup):
             chat.click()
             break
     
@@ -134,6 +137,14 @@ def broadCast(messageStack, selectedGroupTitle, groupChats):
     #clean up after sending messages.
     messageStack.clear()
     print('broadcast ran successfully')
+#________________________________________________________________________#
+def fillGroupQueue(trackedChats):
+    groupQueue = deque([])
+    for webElement in trackedChats:
+        titleArray = webElement.find_elements_by_css_selector("div.im_dialog_peer")
+        groupQueue.append(titleArray[0].text)
+    return groupQueue
+        
 #________________________________________________________________________#
 #User prompt to run BotLoop
 global READY
@@ -168,19 +179,30 @@ if (READY):
     groupQueue = deque([])
     #_____________________________________
     trackedChats = selectGroups(groupChats)
+    homeGroup = selectHomeGroup(groupChats)
     lastMessageDict = initializeDict(trackedChats)
-    timeout = 90
+    timeout = 120
     timeout_start = time.time()
-    while time.time() < timeout_start + timeout:
+    cleanupTimeout = time.time()
+    # month timeout:
+    while time.time() < 1517278786 + 259200:
+    # while time.time() < timeout_start + timeout:
         if(len(list(groupQueue)) == 0):
-            time.sleep(3)
-            groupQueue = groupQueueBuilder(trackedChats)
+            time.sleep(1)
+            if(time.time() > cleanupTimeout + 10):
+                groupQueue = fillGroupQueue(trackedChats)
+            else:
+                groupQueue = groupQueueBuilder(trackedChats)
+                
         else:
-            selectedGroupTitle = groupFinder(groupQueue.popleft())
+            selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
             messageStack = createMessageStack(selectedGroupTitle, lastMessageDict)
-            broadCast(messageStack, selectedGroupTitle, userChats)
-            
+            broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup)
+            cleanupTimeout = time.time()
+
     print('Finished BotLoop')
+    
+    
         
         
             #get first in queue and cache / print all messages from it.
