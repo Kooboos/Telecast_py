@@ -85,12 +85,12 @@ def groupQueueBuilder(trackedChats):
 #________________________________________________________________________#
 #groupFinder - Takes in name of group finds it selects it, returns title of slected chat
 def groupFinder(name, trackedChats):
-    print('Finding groupchat')
+    print('Finding '+ name)
     for chat in trackedChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
         if(titleArray[0].text == name):
             chat.click()
-            print('Clicked on groupchat.')
+            print('Clicked on ' + name)
             return(titleArray[0].text)
     print('groupFinder Could not find group: '+ name)
     return 'noGroupError'
@@ -102,9 +102,11 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
     messageStack = []
     messages = browser.find_elements_by_class_name("im_message_text")
     textMessages = []
-    print('Loading Messages')
+    print('Loading '+str(len(messages))+' new messages')
     #change array of WebElements to array of strings. easier to work with, avoid errors
     for webElement in messages:
+        if(webElement.text !=''):
+            print(webElement.text)
         textMessages.append(webElement.text)
     #for some reason there were empty strings being grabbed by selenium. removing them here    
     textMessages = list(filter(None, textMessages))
@@ -123,7 +125,7 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
 # Broadcast Method
 def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
     #select home chat
-    print('            Will now be sending: ')
+    print('Sending...')
     messageStack.reverse()
     print(messageStack)
     for chat in groupChats:
@@ -141,7 +143,7 @@ def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
         lastMessageDict[selectedGroupTitle] = messageStack[-1]
     #clean up after sending messages.
     messageStack.clear()
-    print('Messages sent successfully!')
+    print('Messages sent!')
     print(messageStack)
     return 0
 #________________________________________________________________________#
@@ -203,7 +205,7 @@ if (READY):
                 cleanupTimeout = time.time()
             else:
                 groupQueue = groupQueueBuilder(trackedChats)
-                if(len(list(groupQueue)) != 0)
+                if(len(list(groupQueue)) != 0):
                     cleanupTimeout = time.time()
                 
         else:
