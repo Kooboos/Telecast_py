@@ -9,7 +9,6 @@ import time
 #Chromedriver
 browser = webdriver.Chrome()
 browser.get('https://web.telegram.org/#/im')
-
 #________________________________________________________________________#
 #Lets the user select groups to track
 def selectGroups(groupChats):
@@ -105,7 +104,7 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
     print('Loading '+str(len(messages))+' new messages')
     #change array of WebElements to array of strings. easier to work with, avoid errors
     for webElement in messages:
-        if(webElement.text !=''):
+        if(len(webElement.text) > 1):
             print(webElement.text)
         textMessages.append(webElement.text)
     #for some reason there were empty strings being grabbed by selenium. removing them here    
@@ -118,16 +117,16 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
         else:
 #             SHOULD RUN WHEN MESSAGES ARE PUSHED
             break
-    print('Messages Loaded')
+    print(len(messageStack + ' messages Loaded')
     print(messageStack)
     return messageStack
  #________________________________________________________________________#
 # Broadcast Method
-def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
+def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup, dictionairy):
     #select home chat
     print('Sending...')
-    messageStack.reverse()
     print(messageStack)
+    messageStack.reverse()
     for chat in groupChats:
         titleArray = chat.find_elements_by_css_selector("div.im_dialog_peer")
         if(titleArray[0].text == homeGroup):
@@ -140,11 +139,11 @@ def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup):
         textBox.send_keys(selectedGroupTitle + ": " + message)
         textBox.send_keys(Keys.RETURN)
     if(len(messageStack) != 0):
-        lastMessageDict[selectedGroupTitle] = messageStack[-1]
+        dictionairy[selectedGroupTitle] = messageStack[-1]
     #clean up after sending messages.
     messageStack.clear()
     print('Messages sent!')
-    print(messageStack)
+    #print(messageStack)
     return 0
 #________________________________________________________________________#
 def fillGroupQueue(trackedChats):
@@ -211,7 +210,7 @@ if (READY):
         else:
             selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
             messageStack = createMessageStack(selectedGroupTitle, lastMessageDict)
-            broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup)
+            broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup, lastMessageDict)
             cleanupTimeout = time.time()
 
     print('Finished BotLoop')
