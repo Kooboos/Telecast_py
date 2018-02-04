@@ -117,7 +117,7 @@ def createMessageStack(selectedGroupTitle, lastMessageDict):
         else:
 #             SHOULD RUN WHEN MESSAGES ARE PUSHED
             break
-    print(len(messageStack + ' messages Loaded')
+    print(len(messageStack) + ' messages Loaded')
     print(messageStack)
     return messageStack
  #________________________________________________________________________#
@@ -222,3 +222,4 @@ if (READY):
             #For our purpose, batch work scheduler would be better. **prioritizes active groupchats**
     # except:
         # pass
+
