@@ -1,15 +1,3 @@
-#imports
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support import expected_conditions as ec
-from collections import deque
-from selenium.webdriver.common.keys import Keys
-import time
-
-#Chromedriver
-browser = webdriver.Chrome()
-browser.get('https://web.telegram.org/#/im')
-#________________________________________________________________________#
 #Lets the user select groups to track
 def selectGroups(groupChats):
     index = 1
@@ -44,31 +32,7 @@ def selectHomeGroup(groupChats):
     return homeGroup
 
 #________________________________________________________________________#
-#Creates dictionairy of last messages in each group
-def initializeDict(groupChats):
-    lastMessageDict = {}
-    for chat in groupChats:
-        chat.click()
-        selectedGroupTitle = chat.find_elements_by_css_selector("div.im_dialog_peer")[0].text
-        while True:
-            try:
-                messages = browser.find_elements_by_class_name("im_message_text")
-                textMessages = []
-                #change array of WebElements to array of strings. easier to work with, avoid errors
-                for webElement in messages:
-                    textMessages.append(webElement.text)
-                #for some reason there were empty strings being grabbed by selenium. removing them here    
-                textMessages = list(filter(None, textMessages))
-                key_gc = selectedGroupTitle
-                lastMessageDict[key_gc] = textMessages[-1]
-                print('Loaded ' + selectedGroupTitle + ': '+ lastMessageDict[key_gc])
-                break
-            except:
-                print(selectedGroupTitle + 'did not load yet, retrying.')
-    print(lastMessageDict)
-    print('Recorded most recent messages in every group. New messages will be pushed to homegroup.')
-    return lastMessageDict
-#________________________________________________________________________#
+
 #groupQueueBuilder
 def groupQueueBuilder(trackedChats):
     for groupChat in trackedChats:
@@ -97,29 +61,65 @@ def groupFinder(name, trackedChats):
 #________________________________________________________________________#
 #Create push method to click on 'home chat' and paste and send it there.
 # checks via dictionary which messages to push
+
 def createMessageStack(selectedGroupTitle, lastMessageDict):
-    messageStack = []
-    messages = browser.find_elements_by_class_name("im_message_text")
+    linkedGroupChatContainer = browser.find_element_by_class_name('im_history_loaded')
+#     print(linkedGroupChatContainer)
+    groupChatContainerElement = linkedGroupChatContainer.find_elements_by_class_name("im_history_messages_peer")
+#     print(groupChatContainerElement)
+    for element in groupChatContainerElement:
+        if(element.get_attribute("class") == 'im_history_messages_peer'): 
+            messages = element.find_elements_by_class_name("im_message_text")
+#             print(messages)
     textMessages = []
     print('Loading '+str(len(messages))+' new messages')
     #change array of WebElements to array of strings. easier to work with, avoid errors
     for webElement in messages:
-        if(len(webElement.text) > 1):
-            print(webElement.text)
+    #     if(len(webElement.text) > 1):
+#         print(webElement.text)
         textMessages.append(webElement.text)
     #for some reason there were empty strings being grabbed by selenium. removing them here    
     textMessages = list(filter(None, textMessages))
-    #reversing list to make FIFO
     textMessages.reverse()
+    ##
+    messageStack = []
     for message in textMessages:
         if(message != lastMessageDict[selectedGroupTitle]):
             messageStack.append(message)
         else:
 #             SHOULD RUN WHEN MESSAGES ARE PUSHED
             break
-    print(len(messageStack) + ' messages Loaded')
+    print((str)(len(messageStack)) + ' messages Loaded')
     print(messageStack)
     return messageStack
+    ##
+    print(textMessages)
+
+#DEPRECATED METHOD
+# def createMessageStack(selectedGroupTitle, lastMessageDict):
+# #     groupChatContainerElement = browser.find_element_by_class_name("im_history_messages_peer")
+#     messageStack = []
+#     messages = browser.find_elements_by_class_name("im_message_text")
+#     textMessages = []
+#     print('Loading '+str(len(messages))+' new messages')
+#     #change array of WebElements to array of strings. easier to work with, avoid errors
+#     for webElement in messages:
+#         if(len(webElement.text) > 1):
+#             print(webElement.text)
+#         textMessages.append(webElement.text)
+#     #for some reason there were empty strings being grabbed by selenium. removing them here    
+#     textMessages = list(filter(None, textMessages))
+#     #reversing list to make FIFO
+#     textMessages.reverse()
+#     for message in textMessages:
+#         if(message != lastMessageDict[selectedGroupTitle]):
+#             messageStack.append(message)
+#         else:
+# #             SHOULD RUN WHEN MESSAGES ARE PUSHED
+#             break
+#     print((str)(len(messageStack)) + ' messages Loaded')
+#     print(messageStack)
+#     return messageStack
  #________________________________________________________________________#
 # Broadcast Method
 def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup, dictionairy):
@@ -135,8 +135,13 @@ def broadCast(messageStack, selectedGroupTitle, groupChats, homeGroup, dictionai
     
     #once homechat is selected, send messages one by one.
     textBox = browser.find_elements_by_class_name('composer_rich_textarea')[0]
-    for message in messageStack:        
-        textBox.send_keys(selectedGroupTitle + ": " + message)
+    for message in messageStack:
+        try:
+            textBox.send_keys(selectedGroupTitle + ": " + message)
+        except:
+            print('*****THIS IS THE MESSAGE***** ' + message)
+            data = ''.join(c for c in data if c <= '\uFFFF')
+            pass
         textBox.send_keys(Keys.RETURN)
     if(len(messageStack) != 0):
         dictionairy[selectedGroupTitle] = messageStack[-1]
@@ -155,6 +160,31 @@ def fillGroupQueue(trackedChats):
     print(groupQueue)
     return groupQueue
         
+#________________________________________________________________________#
+#Creates dictionairy of last messages in each group
+def initializeDict(groupChats):
+    lastMessageDict = {}
+    for chat in groupChats:
+        chat.click()
+        selectedGroupTitle = chat.find_elements_by_css_selector("div.im_dialog_peer")[0].text
+        while True:
+            try:   
+                messages = browser.find_elements_by_class_name("im_message_text")
+                textMessages = []
+                #change array of WebElements to array of strings. easier to work with, avoid errors
+                for webElement in messages:
+                    textMessages.append(webElement.text)
+                #for some reason there were empty strings being grabbed by selenium. removing them here    
+                textMessages = list(filter(None, textMessages))
+                key_gc = selectedGroupTitle
+                lastMessageDict[key_gc] = textMessages[-1]
+                print('Loaded ' + selectedGroupTitle + ': '+ lastMessageDict[key_gc])
+                break
+            except:
+                print(selectedGroupTitle + ' did not load yet, retrying.')
+    print(lastMessageDict)
+    print('Recorded most recent messages in every group. New messages will be pushed to homegroup.')
+    return lastMessageDict
 #________________________________________________________________________#
 #User prompt to run BotLoop
 global READY
@@ -190,30 +220,61 @@ if (READY):
     groupQueue = deque([])
     trackedChats = selectGroups(groupChats)
     homeGroup = selectHomeGroup(groupChats)
-    lastMessageDict = initializeDict(trackedChats)
-    timeout = 120
-    timeout_start = time.time()
-    cleanupTimeout = time.time()
-    # month timeout:
-    # while time.time() < 1517278786 + 259200:
-    while time.time() < timeout_start + timeout:
-        if(len(list(groupQueue)) == 0):
-            time.sleep(1)
-            if(time.time() > cleanupTimeout + 10):
-                groupQueue = fillGroupQueue(trackedChats)
-                cleanupTimeout = time.time()
-            else:
-                groupQueue = groupQueueBuilder(trackedChats)
-                if(len(list(groupQueue)) != 0):
-                    cleanupTimeout = time.time()
-                
-        else:
-            selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
-            messageStack = createMessageStack(selectedGroupTitle, lastMessageDict)
-            broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup, lastMessageDict)
+    while True:
+        try:
+            lastMessageDict = initializeDict(trackedChats)
+            timeout = 3600
+            timeout_start = time.time()
             cleanupTimeout = time.time()
+            # month timeout:
+            # while time.time() < 1517278786 + 259200:
+            while time.time() < timeout_start + timeout:
+                if(len(list(groupQueue)) == 0):
+                    time.sleep(1)
+                    if(time.time() > cleanupTimeout + 10):
+                        groupQueue = fillGroupQueue(trackedChats)
+                        cleanupTimeout = time.time()
+                    else:
+                        groupQueue = groupQueueBuilder(trackedChats)
+                        if(len(list(groupQueue)) != 0):
+                            cleanupTimeout = time.time()
 
-    print('Finished BotLoop')
+                else:
+                    selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
+                    messageStack = createMessageStack(selectedGroupTitle, lastMessageDict)
+                    broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup, lastMessageDict)
+                    cleanupTimeout = time.time()
+
+            print('Finished BotLoop')
+        except:
+            print("Something went wrong! HOLLY FUCK ABORT ABORT MAYDAY MAYDAY" )
+
+        
+        
+#     lastMessageDict = initializeDict(trackedChats)
+#     timeout = 3600
+#     timeout_start = time.time()
+#     cleanupTimeout = time.time()
+#     # month timeout:
+#     # while time.time() < 1517278786 + 259200:
+#     while time.time() < timeout_start + timeout:
+#         if(len(list(groupQueue)) == 0):
+#             time.sleep(1)
+#             if(time.time() > cleanupTimeout + 10):
+#                 groupQueue = fillGroupQueue(trackedChats)
+#                 cleanupTimeout = time.time()
+#             else:
+#                 groupQueue = groupQueueBuilder(trackedChats)
+#                 if(len(list(groupQueue)) != 0):
+#                     cleanupTimeout = time.time()
+                
+#         else:
+#             selectedGroupTitle = groupFinder(groupQueue.popleft(), trackedChats)
+#             messageStack = createMessageStack(selectedGroupTitle, lastMessageDict)
+#             broadCast(messageStack, selectedGroupTitle, groupChats,homeGroup, lastMessageDict)
+#             cleanupTimeout = time.time()
+
+#     print('Finished BotLoop')
     
     
         
@@ -223,3 +284,5 @@ if (READY):
     # except:
         # pass
 
+
+        
